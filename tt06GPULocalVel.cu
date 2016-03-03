@@ -698,14 +698,14 @@ int main(int argc, const char* argv[])
 {
 	int i, ii, iii;
 	int time = 0;
-	FILE *fV = fopen("tt06 GPU Voltage.txt", "w");
-	FILE *ft = fopen("tt06 GPU Time.txt", "w");
-	FILE *params = fopen("tt06 GPU SA parameters.txt", "w");
-	FILE *allparams = fopen("tt06 GPU 2D all parameters.txt", "w");
-	FILE *output = fopen("tt06 GPU SA output.txt", "w");
-	FILE *s2output = fopen("tt06 GPU s2 Analysis.txt", "w");
-	FILE* p = fopen("tt06 GPU passed threshold.txt", "w");
-	FILE* v = fopen("tt06 GPU local velocity.txt","w");
+	FILE *fV = fopen("tt06_GPU_Voltage.txt", "w");
+	FILE *ft = fopen("tt06_GPU_Time.txt", "w");
+	FILE *params = fopen("tt06_GPU_SA_parameters.txt", "w");
+	FILE *allparams = fopen("tt06_GPU_2D_all_parameters.txt", "w");
+	FILE *output = fopen("tt06_GPU_SA_output.txt", "w");
+	FILE *s2output = fopen("tt06_GPU_s2_Analysis.txt", "w");
+	FILE* p = fopen("tt06_GPU_passed_threshold.txt", "w");
+	FILE* v = fopen("tt06_GPU_local_velocity.txt","w");
 	int index = 0;
 	float* host_vars;
 	float* dev_vars;
@@ -722,8 +722,8 @@ int main(int argc, const char* argv[])
 	float* s2_times_dev;
 	float* percent_excited;
 	float* dev_percent_excited;
-	cudaEvent_t start, stop;
-	float elapsedTime;
+	//cudaEvent_t start, stop;
+	//float elapsedTime;
 	float* dev_randNums;
 	float* randNums;
 	int size;
@@ -776,9 +776,9 @@ int main(int argc, const char* argv[])
 	// S2 Analysis?
 	bool s2_analysis = false;
 
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start, 0);
+	//cudaEventCreate(&start);
+	//cudaEventCreate(&stop);
+	//cudaEventRecord(start, 0);
 
 	if (s2_analysis) {
 		begin_time = 900;
@@ -868,7 +868,7 @@ int main(int argc, const char* argv[])
 		}
 		time++;
 	}
-
+	cudaDeviceSynchronize();
 	fprintf(fV, "]; \n");
 
 
@@ -877,18 +877,18 @@ int main(int argc, const char* argv[])
 	This last section of code is only writing data to file(s) and cleaning up the memory
 	*/
 
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&elapsedTime, start, stop);
+	//cudaEventRecord(stop, 0);
+	//cudaEventSynchronize(stop);
+	//cudaEventElapsedTime(&elapsedTime, start, stop);
 
 	free(host_vars);
 	cudaFree(dev_vars);
 	cudaFree(dev_ion_currents);
 	cudaFree(dev_x_temp);
-	free(host_Vtemp);
+	//free(host_Vtemp);
 	cudaFree(dev_Vtemp);
 
-	printf("Elapsed Time = %f s \n", elapsedTime / 1000);
+	//printf("Elapsed Time = %f s \n", elapsedTime / 1000);
 	printf("\n");
 	printf("Calculating Simulation outputs...\n");
 	printf("\n");
