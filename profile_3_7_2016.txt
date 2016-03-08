@@ -1,0 +1,13 @@
+Program is Done
+======== Profiling result:
+ Time(%)      Time   Calls       Avg       Min       Max  Name
+   80.97    30.97s   24999    1.24ms    1.20ms    1.27ms  computeState(float*, float*, int, float, float*, int, float*, int, int)
+   10.14     3.88s   24999  155.12us  140.00us  169.02us  updateState(float*, float*, int, int)
+    7.07     2.70s   24999  108.16us   90.72us  117.73us  compute_voltage(float*, float*, float*, float, float*, int, int, int, int, int, float, float, int, int, bool, int*, int)
+    1.14  436.30ms       1  436.30ms  436.30ms  436.30ms  make_randomNums(float*, int, int, int)
+    0.66  250.73ms   24999   10.03us    2.18us   21.31us  update_voltage(float*, float*, int, int)
+    0.01    5.55ms     105   52.87us    5.38us    1.36ms  [CUDA memcpy DtoH]
+    0.01    4.59ms       1    4.59ms    4.59ms    4.59ms  [CUDA memcpy HtoD]
+    0.00   98.91us       1   98.91us   98.91us   98.91us  initialConditions(float*, int, int, int, int*)
+    0.00   14.37us       1   14.37us   14.37us   14.37us  computeLocal(int*, int, int*)
+    0.00   10.82us       1   10.82us   10.82us   10.82us  computeVelocity(float*, int, int, float*, float, int, int)
