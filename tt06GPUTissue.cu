@@ -750,7 +750,7 @@ int main(int argc, const char* argv[])
 
 	// Number of Cells
 	int length = 100;
-	int width = 1;
+	int width = 100;
 	int num_cells = length*width;
 	int cells_per_thread = 1; // for cell numbers > 500, one thread may need to work on more than one cell
 
@@ -840,16 +840,20 @@ int main(int argc, const char* argv[])
 	cudaMalloc(&dev_velLocal, sizeof(int)* simulations*(num_cells-1));
 	cudaMalloc(&dev_passed, sizeof(int)*simulations*num_cells);
 
+	//Set up block and grid dimmensions
+	dim3 dimGrid(simulations,10); //Each simulation has 10 blocks
+	dim3 dimBlock(10,length) //creates a 10 x 100 block
+
 	// Initialize vars array with initial conditions
-	initialConditions <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, num_param, num_cells, cells_per_thread, dev_passed);
+	initialConditions <<<dimGrid,dimBlock>>>(dev_vars, num_param, num_cells, cells_per_thread, dev_passed);
 
 	while (time<iterations) {
 
-		computeState <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_ion_currents, num_cells, step, dev_randNums, simulations, dev_x_temp, num_changing_vars, cells_per_thread);
-		updateState <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_x_temp, num_cells, cells_per_thread);
+		computeState <<<dimGrid,dimBlock>>>(dev_vars, dev_ion_currents, num_cells, step, dev_randNums, simulations, dev_x_temp, num_changing_vars, cells_per_thread);
+		updateState <<<dimGrid,dimBlock  >>>(dev_vars, dev_x_temp, num_cells, cells_per_thread);
 
-		compute_voltage <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, cells_per_thread, local, dev_passed, threshold);
-		update_voltage <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_Vtemp, num_cells, cells_per_thread);
+		compute_voltage <<<dimGrid,dimBlock >>>(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, cells_per_thread, local, dev_passed, threshold);
+		update_voltage <<<dimGrid,dimBlock>>>(dev_vars, dev_Vtemp, num_cells, cells_per_thread);
 
 		//update Voltage and time arrays and write data to file
 
