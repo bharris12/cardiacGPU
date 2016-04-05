@@ -743,10 +743,10 @@ int main(int argc, const char* argv[])
 	// Time Step Variables
 	float step = 0.002;
 	float tend = 1000;
-	int iterations = tend / step;
-	float skip_time_value = 0.5; //ms
+	int iterations = tend / step; // 50/.002
+	float skip_time_value = 0.5; //ms 
 	int skip_timept = skip_time_value / step; // skipping time points in voltage array & time array
-	int total_timepts = iterations / skip_timept;
+	int total_timepts = iterations / skip_timept + 1;
 
 	// Number of Cells
 	int length = 100;
@@ -852,11 +852,12 @@ int main(int argc, const char* argv[])
 		update_voltage <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_Vtemp, num_cells, cells_per_thread);
 
 		//update Voltage and time arrays and write data to file
-
+		if (index > total_timepts)
+			printf("Error\n");
 		if (time%skip_timept == 0) {
 			cudaMemcpy(host_Vtemp, dev_Vtemp, num_cells*simulations*sizeof(float), cudaMemcpyDeviceToHost);
 			for (i = 0; i<num_cells*simulations; i++) {
-				V_array[(i*(iterations / skip_timept)) + index] = host_Vtemp[i];
+				V_array[i * total_timepts + index] = host_Vtemp[i];
 				fprintf(fV, "%f\t ", host_Vtemp[i]);
 			}
 			fprintf(fV, "\n");
@@ -942,13 +943,11 @@ int main(int argc, const char* argv[])
 			fprintf(output, "%f\n", vel[i]);
 		}
 		fprintf(output, "]; \n");
-
 		//cudaFree(rndState);
 		cudaFree(dev_randNums);
 		free(randNums);
 		free(vel);
 		cudaFree(dev_vel);
-
 		cudaFree(dev_velLocal);
 		cudaFree(dev_passed);
 		free(host_velLocal);
@@ -982,7 +981,6 @@ int main(int argc, const char* argv[])
 		free(percent_excited);
 		cudaFree(dev_percent_excited);
 	}
-
 	free(V_array);
 	cudaFree(dev_V_array);
 	//free(host_Vtemp); //Makes sure this works
