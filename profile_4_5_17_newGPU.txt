@@ -1,0 +1,20 @@
+tt06GPULocalVel.cu
+Elapsed Time = 567.993408 s 
+
+Calculating Simulation outputs...
+
+Program is Done
+==23813== Profiling application: ./a.out
+==23813== Profiling result:
+Time(%)      Time     Calls       Avg       Min       Max  Name
+ 83.89%  313.805s    499999  627.61us  599.09us  649.07us  computeState(float*, float*, int, float, float*, int, float*, int, int)
+  9.71%  36.3156s    499999  72.631us  67.454us  81.790us  updateState(float*, float*, int, int)
+  5.54%  20.7109s    499999  41.421us  38.240us  44.127us  compute_voltage(float*, float*, float*, float, float*, int, int, int, int, int, float, float, int, int, bool, int*, int)
+  0.79%  2.96006s    499999  5.9200us  5.1830us  6.2400us  update_voltage(float*, float*, int, int)
+  0.03%  107.91ms         1  107.91ms  107.91ms  107.91ms  make_randomNums(float*, int, int, int)
+  0.02%  87.763ms         1  87.763ms  87.763ms  87.763ms  [CUDA memcpy HtoD]
+  0.02%  82.740ms      2013  41.102us  3.7120us  740.97us  [CUDA memcpy DtoH]
+  0.00%  169.53us         1  169.53us  169.53us  169.53us  computeVelocity(float*, int, int, float*, float, int, int)
+  0.00%  31.040us         1  31.040us  31.040us  31.040us  initialConditions(float*, int, int, int, int*)
+  0.00%  6.4000us         1  6.4000us  6.4000us  6.4000us  computeLocal(int*, int, int*)
+bharris@mionescu-desktop:~$ 
