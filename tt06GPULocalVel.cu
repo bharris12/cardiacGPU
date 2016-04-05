@@ -722,8 +722,8 @@ int main(int argc, const char* argv[])
 	float* s2_times_dev;
 	float* percent_excited;
 	float* dev_percent_excited;
-	//cudaEvent_t start, stop;
-	//float elapsedTime;
+	cudaEvent_t start, stop;
+	float elapsedTime;
 	float* dev_randNums;
 	float* randNums;
 	int size;
@@ -738,11 +738,11 @@ int main(int argc, const char* argv[])
 	int num_param = 19;
 
 	// Assume only running 1 simulation initially
-	int simulations = 1;
+	int simulations = 500;
 
 	// Time Step Variables
 	float step = 0.002;
-	float tend = 50;
+	float tend = 1000;
 	int iterations = tend / step;
 	float skip_time_value = 0.5; //ms
 	int skip_timept = skip_time_value / step; // skipping time points in voltage array & time array
@@ -776,9 +776,9 @@ int main(int argc, const char* argv[])
 	// S2 Analysis?
 	bool s2_analysis = false;
 
-	//cudaEventCreate(&start);
-	//cudaEventCreate(&stop);
-	//cudaEventRecord(start, 0);
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	cudaEventRecord(start, 0);
 
 	if (s2_analysis) {
 		begin_time = 900;
@@ -812,7 +812,7 @@ int main(int argc, const char* argv[])
 		randNums = (float*)malloc(sizeof(float)*simulations*num_changing_vars * num_cells);
 		//init_randomNums << <simulations, num_changing_vars >> >(rndState, seed_factor);
 		//cudaDeviceSynchronize();
-		make_randomNums << <simulations, num_changing_vars >> >(dev_randNums, num_cells, num_changing_vars, seed_factor);
+		make_randomNums <<<simulations, num_changing_vars >>>(dev_randNums, num_cells, num_changing_vars, seed_factor);
 
 	}
 	size = num_param*num_cells*simulations;
@@ -841,15 +841,15 @@ int main(int argc, const char* argv[])
 	cudaMalloc(&dev_passed, sizeof(int)*simulations*num_cells);
 
 	// Initialize vars array with initial conditions
-	initialConditions << <simulations, (num_cells / cells_per_thread) >> >(dev_vars, num_param, num_cells, cells_per_thread, dev_passed);
+	initialConditions <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, num_param, num_cells, cells_per_thread, dev_passed);
 
 	while (time<iterations) {
 
-		computeState << <simulations, (num_cells / cells_per_thread) >> >(dev_vars, dev_ion_currents, num_cells, step, dev_randNums, simulations, dev_x_temp, num_changing_vars, cells_per_thread);
-		updateState << <simulations, (num_cells / cells_per_thread) >> >(dev_vars, dev_x_temp, num_cells, cells_per_thread);
+		computeState <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_ion_currents, num_cells, step, dev_randNums, simulations, dev_x_temp, num_changing_vars, cells_per_thread);
+		updateState <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_x_temp, num_cells, cells_per_thread);
 
-		compute_voltage << <simulations, (num_cells / cells_per_thread) >> >(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, cells_per_thread, local, dev_passed, threshold);
-		update_voltage << <simulations, (num_cells / cells_per_thread) >> >(dev_vars, dev_Vtemp, num_cells, cells_per_thread);
+		compute_voltage <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, cells_per_thread, local, dev_passed, threshold);
+		update_voltage <<<simulations, (num_cells / cells_per_thread) >>>(dev_vars, dev_Vtemp, num_cells, cells_per_thread);
 
 		//update Voltage and time arrays and write data to file
 
@@ -877,18 +877,17 @@ int main(int argc, const char* argv[])
 	This last section of code is only writing data to file(s) and cleaning up the memory
 	*/
 
-	//cudaEventRecord(stop, 0);
-	//cudaEventSynchronize(stop);
-	//cudaEventElapsedTime(&elapsedTime, start, stop);
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&elapsedTime, start, stop);
 
 	free(host_vars);
 	cudaFree(dev_vars);
 	cudaFree(dev_ion_currents);
 	cudaFree(dev_x_temp);
-	//free(host_Vtemp);
 	cudaFree(dev_Vtemp);
 
-	//printf("Elapsed Time = %f s \n", elapsedTime / 1000);
+	printf("Elapsed Time = %f s \n", elapsedTime / 1000);
 	printf("\n");
 	printf("Calculating Simulation outputs...\n");
 	printf("\n");
@@ -986,6 +985,6 @@ int main(int argc, const char* argv[])
 
 	free(V_array);
 	cudaFree(dev_V_array);
-
+	//free(host_Vtemp); //Makes sure this works
 	printf("Program is Done\n");
 }
