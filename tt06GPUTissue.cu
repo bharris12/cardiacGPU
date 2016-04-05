@@ -28,10 +28,14 @@ __global__ void initialConditions(float* vars, int num_param, int num_cells, int
 
 	// Within each test, the variables are divided as follows 
 	// V(cell1), V(cell2), V(cell3) ... V(cellLast), m(cell1), m(cell2), ... m(cellLast) ... for all 19 parameters
-	int idx = threadIdx.x;
-	int simulations = blockIdx.x;
-	int idxx = blockIdx.x * num_cells + threadIdx.x;
 	
+	int simulations = blockIdx.x;  
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
+	int idx = block_number + thread_number;
+
+	int idxx = simluations * num_cells + block_number + thread_number;
+
 	vars[(simulations*num_param*num_cells) + idx + (0 * num_cells)] = V;
 	vars[(simulations*num_param*num_cells) + idx + (1 * num_cells)] = m;
 	vars[(simulations*num_param*num_cells) + idx + (2 * num_cells)] = h;
@@ -57,33 +61,39 @@ __global__ void initialConditions(float* vars, int num_param, int num_cells, int
 
 }
 
-__global__ void computeState(float* x, float* ion_current, int total_cells, float step, float* randNums, int variations, float* x_temp, int num_changing_vars) {
+__global__ void computeState(float* x, float* ion_current, int num_cells, float step, float* randNums, int variations, float* x_temp, int num_changing_vars) {
+	// x = dev_vars orgaized by simulation
+	// within each simulation there are 19 rows
+	int simulations = blockIdx.x;  
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
+	
 	int idx = threadIdx.x;
 	int cell_num, cell_current_idx;
-	cell_num = (blockIdx.x*total_cells * 19) + idx;
-	cell_current_idx = (blockIdx.x * total_cells) + idx;
+	cell_num = (blockIdx.x*num_cells * 19) + idx;
+	cell_current_idx = (blockIdx.x * num_cells) + idx;
 
 	//Index Variables to make life easier
-	//Array  is categorized by blocks of size=total_cells, each block contains the values of one parameter across the cells
-	int V_i = 0 * total_cells;
-	int m_i = 1 * total_cells;
-	int h_i = 2 * total_cells;
-	int j_i = 3 * total_cells;
-	int d_i = 4 * total_cells;
-	int f_i = 5 * total_cells;
-	int f2_i = 6 * total_cells;
-	int fCass_i = 7 * total_cells;
-	int r_i = 8 * total_cells;
-	int s_i = 9 * total_cells;
-	int xs_i = 10 * total_cells;
-	int xr1_i = 11 * total_cells;
-	int xr2_i = 12 * total_cells;
-	int Rbar_ryr_i = 13 * total_cells;
-	int Cai_i = 14 * total_cells;
-	int Cass_i = 15 * total_cells;
-	int CaSR_i = 16 * total_cells;
-	int Nai_i = 17 * total_cells;
-	int Ki_i = 18 * total_cells;
+	//Array  is categorized by blocks of size=num_cells, each block contains the values of one parameter across the cells
+	int V_i = 0 * num_cells;
+	int m_i = 1 * num_cells;
+	int h_i = 2 * num_cells;
+	int j_i = 3 * num_cells;
+	int d_i = 4 * num_cells;
+	int f_i = 5 * num_cells;
+	int f2_i = 6 * num_cells;
+	int fCass_i = 7 *  num_cells;
+	int r_i = 8 * num_cells;
+	int s_i = 9 * num_cells;
+	int xs_i = 10 * num_cells;
+	int xr1_i = 11 * num_cells;
+	int xr2_i = 12 * num_cells;
+	int Rbar_ryr_i = 13 * num_cells;
+	int Cai_i = 14 * num_cells;
+	int Cass_i = 15 * num_cells;
+	int CaSR_i = 16 * num_cells;
+	int Nai_i = 17 * num_cells;
+	int Ki_i = 18 * num_cells;
 
 	float ENa, EK, ECa, EKs, INa, ICa, Ito, IKs, IKr;
 	float aK1, bK1, xK1, IK1;
@@ -183,31 +193,31 @@ __global__ void computeState(float* x, float* ion_current, int total_cells, floa
 	}
 	else {
 
-		GNa_ = 14.838*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 0];
-		GK1_ = 5.405*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 1];
-		GKr_ = 0.153*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 2];
-		GpK_ = 0.0146*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 3];
-		GpCa_ = 0.1238*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 4];
-		GNab_ = 2.9e-4*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 5];
-		GCab_ = 5.92e-4*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 6];
+		GNa_ = 14.838*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 0];
+		GK1_ = 5.405*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 1];
+		GKr_ = 0.153*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 2];
+		GpK_ = 0.0146*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 3];
+		GpCa_ = 0.1238*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 4];
+		GNab_ = 2.9e-4*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 5];
+		GCab_ = 5.92e-4*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 6];
 		if (celltype == 'n') { //endo
-			Gto_ = 0.073*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
-			GKs_ = 0.392*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
+			Gto_ = 0.073*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
+			GKs_ = 0.392*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
 		}
 		else if (celltype == 'p') { //epi
-			Gto_ = 0.294*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
-			GKs_ = 0.392*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
+			Gto_ = 0.294*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
+			GKs_ = 0.392*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
 		}
 		else if (celltype == 'm') { //mid
-			Gto_ = 0.294*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
-			GKs_ = 0.098*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
+			Gto_ = 0.294*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
+			GKs_ = 0.098*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
 		}
-		PCa_ = 3.980e-5*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 9];
-		INaK_ = 2.724*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 10];
-		kNaCa = 1000 * randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 11];
-		Vleak = 3.6e-4*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 12];
-		Iup_ = 6.375*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 13];
-		Vrel = 0.102*randNums[(blockIdx.x * total_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 14];
+		PCa_ = 3.980e-5*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 9];
+		INaK_ = 2.724*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 10];
+		kNaCa = 1000 * randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 11];
+		Vleak = 3.6e-4*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 12];
+		Iup_ = 6.375*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 13];
+		Vrel = 0.102*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 14];
 	}
 
 	ENa = RTF*log(Nao / x[cell_num + Nai_i]);
@@ -439,8 +449,6 @@ __global__ void updateState(float* x, float* x_temp, int num_cells) {
 __global__ void compute_voltage(float* x, float* V, float* Iion, float step, float* randNums, int variations, int length, int width, int num_changing_vars, int time, float stimDur, float stimAmp, int tstim, bool local, int* passed, int threshold) {
 	bool s2_analysis = false;
 	int num_cells = length*width;
-	int m;
-	int n;
 	
 	float stim = 0.0;
 	float Istim1 = 0.0;
@@ -455,8 +463,13 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 	int s2_loc = -10000;
 	int tstim2;
 
-	m = (blockIdx.x * num_cells) + threadIdx.x;
-	n = (blockIdx.x * num_cells * 19) + threadIdx.x;
+	int sim_number = blockIdx.x * num_cells; 
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
+
+	int m = sim_number + block_number + thread_number;
+	int n = (sim_number * 19) + (block_number * 19) + thread_number;
+
 	if (num_changing_vars == 0) {
 		gj = 1.27;
 		Rmyo = 526;
@@ -587,11 +600,11 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 	}
 }
 
-__global__ void update_voltage(float* x, float* V, int total_cells) {
+__global__ void update_voltage(float* x, float* V, int num_cells) {
 	int idx = threadIdx.x;
 
-	int m = (blockIdx.x * total_cells) + idx;
-	int n = (blockIdx.x * total_cells * 19) + idx;
+	int m = (blockIdx.x * num_cells) + idx;
+	int n = (blockIdx.x * num_cells * 19) + idx;
 
 	x[n] = V[m];
 }
@@ -736,6 +749,8 @@ int main(int argc, const char* argv[])
 	int length = 100;
 	int width = 100;
 	int num_cells = length*width;
+	int blockDim_y = 1000 / length;
+	int gridDim_y = width / blockDim_x;
 
 	//Stimulus Variables
 	float stimDur = 2.0;
@@ -824,8 +839,8 @@ int main(int argc, const char* argv[])
 	cudaMalloc(&dev_passed, sizeof(int)*simulations*num_cells);
 
 	//Set up block and grid dimmensions
-	dim3 dimGrid(simulations,10); //Each simulation has 10 blocks
-	dim3 dimBlock(10,length) //creates a 10 x 100 block
+	dim3 dimGrid(simulations,gridDim_y); //Each simulation has 10 blocks
+	dim3 dimBlock(length,blockDim_y) //creates a 10 x 100 block
 
 	// Initialize vars array with initial conditions
 	initialConditions <<<dimGrid,dimBlock>>>(dev_vars, num_param, num_cells, dev_passed);
