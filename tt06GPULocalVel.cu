@@ -983,6 +983,6 @@ int main(int argc, const char* argv[])
 	}
 	free(V_array);
 	cudaFree(dev_V_array);
-	//free(host_Vtemp); //Makes sure this works
+	free(host_Vtemp); //Makes sure this works
 	printf("Program is Done\n");
 }

@@ -657,7 +657,7 @@ int main(int argc, const char* argv[])
 	int iterations = tend / step;
 	float skip_time_value = 0.5; //ms
 	int skip_timept = skip_time_value / step; // skipping time points in voltage array & time array
-	int total_timepts = iterations / skip_timept;
+	int total_timepts = iterations / skip_timept + 1;
 
 	// Number of Cells
 	int length = 100;
