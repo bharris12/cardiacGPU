@@ -31,10 +31,10 @@ __global__ void initialConditions(float* vars, int num_param, int num_cells, int
 	
 	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 	int idx = block_number + thread_number;
 
-	int idxx = simluations + block_number + thread_number;
+	int idxx = simulations + block_number + thread_number;
 
 	vars[(simulations*num_param*num_cells) + idx + (0 * num_cells)] = V;
 	vars[(simulations*num_param*num_cells) + idx + (1 * num_cells)] = m;
@@ -66,7 +66,7 @@ __global__ void computeState(float* x, float* ion_current, int num_cells, float 
 	// within each simulation there are 19 rows
 	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 
 	int idx = block_number + thread_number;
 	int cell_num, cell_current_idx;
@@ -439,7 +439,7 @@ __global__ void updateState(float* x, float* x_temp, int num_cells) {
 
 	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 	
 	for (i = 1; i<19; i++) {
 		x[(simulations * 19) + block_number + thread_number + (i*num_cells)] = x_temp[(simulations + block_number) * 19 + thread_number + (i*num_cells)];
@@ -466,8 +466,8 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 
 	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
-
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
+	int idx = block_number + thread_number;
 	int m = simulations + block_number + thread_number;
 	int n = (simulations * 19) + block_number + thread_number; //not 100% sure
 
@@ -604,7 +604,7 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 __global__ void update_voltage(float* x, float* V, int num_cells) {
 	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 
 	int m = simulations + block_number + thread_number;
 	int n = (simulations * 19) + block_number + thread_number;
@@ -650,9 +650,9 @@ __global__ void computeLocal(int* passed, int num_cells, int* vel)
 }
 
 __global__ void init_randomNums(curandState *state, int sf) {
-	int simulations = blockIdx.x * num_cells;  
+	int simulations = blockIdx.x * blockDim.x * blockDim.x;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 
 	int idx = simulations + block_number + thread_number;
 	curand_init(sf + blockIdx.x + threadIdx.x, idx, blockDim.x + threadIdx.x, &state[idx]);
@@ -662,7 +662,7 @@ __global__ void make_randomNums( float* randArray, int num_cells, int num_changi
 	curandState local;
 	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
-	int thread_number = threadIdx.y * length + threadIdx.x;
+	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 
 	int idx = (simulations + block_number) * num_changing_vars + thread_number;
 
@@ -762,7 +762,7 @@ int main(int argc, const char* argv[])
 	int width = 100;
 	int num_cells = length*width;
 	int blockDim_y = 1000 / length;
-	int gridDim_y = width / blockDim_x;
+	int gridDim_y = width / blockDim_y;
 
 	//Stimulus Variables
 	float stimDur = 2.0;
@@ -852,7 +852,7 @@ int main(int argc, const char* argv[])
 
 	//Set up block and grid dimmensions
 	dim3 dimGrid(simulations,gridDim_y); //Each simulation has 10 blocks
-	dim3 dimBlock(length,blockDim_y) //creates a 10 x 100 block
+	dim3 dimBlock(length,blockDim_y); //creates a 10 x 100 block
 
 	// Initialize vars array with initial conditions
 	initialConditions <<<dimGrid,dimBlock>>>(dev_vars, num_param, num_cells, dev_passed);
