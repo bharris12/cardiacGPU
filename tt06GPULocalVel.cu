@@ -461,8 +461,7 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 	float gj;
 	int s2_loc = -10000;
 	int tstim2;
-	int
-		idx = cells_per_thread*threadIdx.x;
+	int idx = cells_per_thread*threadIdx.x;
 	int limit = idx + cells_per_thread;
 
 	for (; idx<limit; idx++) {

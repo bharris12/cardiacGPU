@@ -590,26 +590,6 @@ __global__ void make_randomNums( float* randArray, int num_cells, int num_changi
 	}
 }
 
-__global__ void initialize_time_s2(float begin_time, float interval, float* time_s2) {
-	int idx = blockIdx.x*blockDim.x + threadIdx.x;
-	time_s2[idx] = begin_time + (interval*idx);
-}
-
-__global__ void percentage_excited(float* V_array, int iterations, int num_cells, float* percent, int variations) {
-	int idx = threadIdx.x;
-	int last_row = iterations - 1;
-	int start = last_row + (idx*num_cells*iterations);
-	int num_excited = 0;
-	int i;
-
-	for (i = 0; i<num_cells; i++) {
-		if (V_array[start + (i*iterations)] >= -55) {
-			num_excited++;
-		}
-	}
-	percent[idx] = ((float)num_excited / (float)num_cells);
-}
-
 int main(int argc, const char* argv[])
 {
 	int i, ii, iii;

@@ -29,12 +29,12 @@ __global__ void initialConditions(float* vars, int num_param, int num_cells, int
 	// Within each test, the variables are divided as follows 
 	// V(cell1), V(cell2), V(cell3) ... V(cellLast), m(cell1), m(cell2), ... m(cellLast) ... for all 19 parameters
 	
-	int simulations = blockIdx.x;  
+	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
 	int thread_number = threadIdx.y * length + threadIdx.x;
 	int idx = block_number + thread_number;
 
-	int idxx = simluations * num_cells + block_number + thread_number;
+	int idxx = simluations + block_number + thread_number;
 
 	vars[(simulations*num_param*num_cells) + idx + (0 * num_cells)] = V;
 	vars[(simulations*num_param*num_cells) + idx + (1 * num_cells)] = m;
@@ -64,14 +64,14 @@ __global__ void initialConditions(float* vars, int num_param, int num_cells, int
 __global__ void computeState(float* x, float* ion_current, int num_cells, float step, float* randNums, int variations, float* x_temp, int num_changing_vars) {
 	// x = dev_vars orgaized by simulation
 	// within each simulation there are 19 rows
-	int simulations = blockIdx.x;  
+	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
 	int thread_number = threadIdx.y * length + threadIdx.x;
-	
-	int idx = threadIdx.x;
+
+	int idx = block_number + thread_number;
 	int cell_num, cell_current_idx;
-	cell_num = (blockIdx.x*num_cells * 19) + idx;
-	cell_current_idx = (blockIdx.x * num_cells) + idx;
+	cell_num = (simulations * 19) + idx;
+	cell_current_idx = simulations + idx;
 
 	//Index Variables to make life easier
 	//Array  is categorized by blocks of size=num_cells, each block contains the values of one parameter across the cells
@@ -193,31 +193,31 @@ __global__ void computeState(float* x, float* ion_current, int num_cells, float 
 	}
 	else {
 
-		GNa_ = 14.838*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 0];
-		GK1_ = 5.405*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 1];
-		GKr_ = 0.153*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 2];
-		GpK_ = 0.0146*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 3];
-		GpCa_ = 0.1238*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 4];
-		GNab_ = 2.9e-4*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 5];
-		GCab_ = 5.92e-4*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 6];
+		GNa_ = 14.838*randNums[(simulations + block_number + thread_number) * num_changing_vars + 0];
+		GK1_ = 5.405*randNums[(simulations + block_number + thread_number) * num_changing_vars + 1];
+		GKr_ = 0.153*randNums[(simulations + block_number + thread_number) * num_changing_vars + 2];
+		GpK_ = 0.0146*randNums[(simulations + block_number + thread_number) * num_changing_vars + 3];
+		GpCa_ = 0.1238*randNums[(simulations + block_number + thread_number) * num_changing_vars + 4];
+		GNab_ = 2.9e-4*randNums[(simulations + block_number + thread_number) * num_changing_vars + 5];
+		GCab_ = 5.92e-4*randNums[(simulations + block_number + thread_number) * num_changing_vars+ 6];
 		if (celltype == 'n') { //endo
-			Gto_ = 0.073*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
-			GKs_ = 0.392*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
+			Gto_ = 0.073*randNums[(simulations + block_number + thread_number) * num_changing_vars + 7];
+			GKs_ = 0.392*randNums[(simulations + block_number + thread_number) * num_changing_vars + 8];
 		}
 		else if (celltype == 'p') { //epi
-			Gto_ = 0.294*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
-			GKs_ = 0.392*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
+			Gto_ = 0.294*randNums[(simulations + block_number + thread_number) * num_changing_vars+ 7];
+			GKs_ = 0.392*randNums[(simulations + block_number + thread_number) * num_changing_vars + 8];
 		}
 		else if (celltype == 'm') { //mid
-			Gto_ = 0.294*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 7];
-			GKs_ = 0.098*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 8];
+			Gto_ = 0.294*randNums[(simulations + block_number + thread_number) * num_changing_vars + 7];
+			GKs_ = 0.098*randNums[(simulations + block_number + thread_number) * num_changing_vars + 8];
 		}
-		PCa_ = 3.980e-5*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 9];
-		INaK_ = 2.724*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 10];
-		kNaCa = 1000 * randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 11];
-		Vleak = 3.6e-4*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 12];
-		Iup_ = 6.375*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 13];
-		Vrel = 0.102*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 14];
+		PCa_ = 3.980e-5*randNums[(simulations + block_number + thread_number) * num_changing_vars + 9];
+		INaK_ = 2.724*randNums[(simulations + block_number + thread_number) * num_changing_vars + 10];
+		kNaCa = 1000 * randNums[(simulations + block_number + thread_number) * num_changing_vars + 11];
+		Vleak = 3.6e-4*randNums[(simulations + block_number + thread_number) * num_changing_vars + 12];
+		Iup_ = 6.375*randNums[(simulations + block_number + thread_number) * num_changing_vars + 13];
+		Vrel = 0.102*randNums[(simulations + block_number + thread_number) * num_changing_vars + 14];
 	}
 
 	ENa = RTF*log(Nao / x[cell_num + Nai_i]);
@@ -436,12 +436,13 @@ __global__ void computeState(float* x, float* ion_current, int num_cells, float 
 
 __global__ void updateState(float* x, float* x_temp, int num_cells) {
 	int i;
-	int idx = threadIdx.x;
-	int variations = blockIdx.x;
 
+	int simulations = blockIdx.x * num_cells;  
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
 	
 	for (i = 1; i<19; i++) {
-		x[(variations * 19 * num_cells) + idx + (i*num_cells)] = x_temp[(variations * 19 * num_cells) + idx + (i*num_cells)];
+		x[(simulations * 19) + block_number + thread_number + (i*num_cells)] = x_temp[(simulations + block_number) * 19 + thread_number + (i*num_cells)];
 	}
 
 }
@@ -463,20 +464,20 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 	int s2_loc = -10000;
 	int tstim2;
 
-	int sim_number = blockIdx.x * num_cells; 
+	int simulations = blockIdx.x * num_cells;  
 	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
 	int thread_number = threadIdx.y * length + threadIdx.x;
 
-	int m = sim_number + block_number + thread_number;
-	int n = (sim_number * 19) + (block_number * 19) + thread_number;
+	int m = simulations + block_number + thread_number;
+	int n = (simulations * 19) + block_number + thread_number; //not 100% sure
 
 	if (num_changing_vars == 0) {
 		gj = 1.27;
 		Rmyo = 526;
 	}
 	else {
-		gj = 1.27*randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 15];
-		Rmyo = 526 * randNums[(blockIdx.x * num_cells * num_changing_vars) + (threadIdx.x * num_changing_vars) + 16];
+		gj = 1.27*randNums[(simulations + block_number + thread_number) * num_changing_vars + 15];
+		Rmyo = 526 * randNums[(simulations + block_number + thread_number) * num_changing_vars + 16];
 	}
 
 	rho = 3.14159*pow(rad, 2)*(Rmyo + 1000 / gj) / deltx; // total resistivity
@@ -601,10 +602,12 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 }
 
 __global__ void update_voltage(float* x, float* V, int num_cells) {
-	int idx = threadIdx.x;
+	int simulations = blockIdx.x * num_cells;  
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
 
-	int m = (blockIdx.x * num_cells) + idx;
-	int n = (blockIdx.x * num_cells * 19) + idx;
+	int m = simulations + block_number + thread_number;
+	int n = (simulations * 19) + block_number + thread_number;
 
 	x[n] = V[m];
 }
@@ -647,13 +650,22 @@ __global__ void computeLocal(int* passed, int num_cells, int* vel)
 }
 
 __global__ void init_randomNums(curandState *state, int sf) {
-	int idx = blockDim.x*blockIdx.x + threadIdx.x;
+	int simulations = blockIdx.x * num_cells;  
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
+
+	int idx = simulations + block_number + thread_number;
 	curand_init(sf + blockIdx.x + threadIdx.x, idx, blockDim.x + threadIdx.x, &state[idx]);
 }
 
 __global__ void make_randomNums( float* randArray, int num_cells, int num_changing_vars, int sf) {
 	curandState local;
-	int idx = num_cells*blockIdx.x*num_changing_vars + threadIdx.x;
+	int simulations = blockIdx.x * num_cells;  
+	int block_number  = blockDim.x * blockDim.y * blockIdx.y;
+	int thread_number = threadIdx.y * length + threadIdx.x;
+
+	int idx = (simulations + block_number) * num_changing_vars + thread_number;
+
 	float sigma1D = 0.15; //SD of variation of simulation
 	float sigma2D = 0; //SD of variation of cells within cable
 	int i;
