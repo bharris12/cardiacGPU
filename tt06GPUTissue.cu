@@ -747,7 +747,7 @@ int main(int argc, const char* argv[])
 	int num_param = 19;
 
 	// Assume only running 1 simulation initially
-	int simulations = 500;
+	int simulations = 2;
 
 	// Time Step Variables
 	float step = 0.002;
@@ -755,7 +755,7 @@ int main(int argc, const char* argv[])
 	int iterations = tend / step;
 	float skip_time_value = 0.5; //ms
 	int skip_timept = skip_time_value / step; // skipping time points in voltage array & time array
-	int total_timepts = iterations / skip_timept;
+	int total_timepts = iterations / skip_timept + 1;
 
 	// Number of Cells
 	int length = 100;
@@ -853,7 +853,7 @@ int main(int argc, const char* argv[])
 	//Set up block and grid dimmensions
 	dim3 dimGrid(simulations,gridDim_y); //Each simulation has 10 blocks
 	dim3 dimBlock(length,blockDim_y); //creates a 10 x 100 block
-
+	printf("Done initalizing");
 	// Initialize vars array with initial conditions
 	initialConditions <<<dimGrid,dimBlock>>>(dev_vars, num_param, num_cells, dev_passed);
 
@@ -864,10 +864,11 @@ int main(int argc, const char* argv[])
 
 		compute_voltage <<<dimGrid,dimBlock >>>(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, local, dev_passed, threshold);
 		update_voltage <<<dimGrid,dimBlock>>>(dev_vars, dev_Vtemp, num_cells);
-
+		cudaDeviceSynchronize();
 		//update Voltage and time arrays and write data to file
 
 		if (time%skip_timept == 0) {
+	
 			cudaMemcpy(host_Vtemp, dev_Vtemp, num_cells*simulations*sizeof(float), cudaMemcpyDeviceToHost);
 			for (i = 0; i<num_cells*simulations; i++) {
 				V_array[(i*(iterations / skip_timept)) + index] = host_Vtemp[i];
@@ -879,6 +880,7 @@ int main(int argc, const char* argv[])
 				t_array[(index*simulations) + i] = time*step;
 			}
 			index++;
+			printf("%f \n",time);
 		}
 		time++;
 	}
