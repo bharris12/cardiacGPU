@@ -36,25 +36,25 @@ __global__ void initialConditions(float* vars, int num_param, int num_cells, int
 
 	int idxx = simulations + block_number + thread_number;
 
-	vars[(simulations*num_param*num_cells) + idx + (0 * num_cells)] = V;
-	vars[(simulations*num_param*num_cells) + idx + (1 * num_cells)] = m;
-	vars[(simulations*num_param*num_cells) + idx + (2 * num_cells)] = h;
-	vars[(simulations*num_param*num_cells) + idx + (3 * num_cells)] = j;
-	vars[(simulations*num_param*num_cells) + idx + (4 * num_cells)] = d;
-	vars[(simulations*num_param*num_cells) + idx + (5 * num_cells)] = f;
-	vars[(simulations*num_param*num_cells) + idx + (6 * num_cells)] = f2;
-	vars[(simulations*num_param*num_cells) + idx + (7 * num_cells)] = fCass;
-	vars[(simulations*num_param*num_cells) + idx + (8 * num_cells)] = r;
-	vars[(simulations*num_param*num_cells) + idx + (9 * num_cells)] = s;
-	vars[(simulations*num_param*num_cells) + idx + (10 * num_cells)] = xs;
-	vars[(simulations*num_param*num_cells) + idx + (11 * num_cells)] = xr1;
-	vars[(simulations*num_param*num_cells) + idx + (12 * num_cells)] = xr2;
-	vars[(simulations*num_param*num_cells) + idx + (13 * num_cells)] = Rbar_ryr;
-	vars[(simulations*num_param*num_cells) + idx + (14 * num_cells)] = Cai;
-	vars[(simulations*num_param*num_cells) + idx + (15 * num_cells)] = Cass;
-	vars[(simulations*num_param*num_cells) + idx + (16 * num_cells)] = CaSR;
-	vars[(simulations*num_param*num_cells) + idx + (17 * num_cells)] = Nai;
-	vars[(simulations*num_param*num_cells) + idx + (18 * num_cells)] = Ki;
+	vars[(simulations*num_param) + idx + (0 * num_cells)] = V;
+	vars[(simulations*num_param) + idx + (1 * num_cells)] = m;
+	vars[(simulations*num_param) + idx + (2 * num_cells)] = h;
+	vars[(simulations*num_param) + idx + (3 * num_cells)] = j;
+	vars[(simulations*num_param) + idx + (4 * num_cells)] = d;
+	vars[(simulations*num_param) + idx + (5 * num_cells)] = f;
+	vars[(simulations*num_param) + idx + (6 * num_cells)] = f2;
+	vars[(simulations*num_param) + idx + (7 * num_cells)] = fCass;
+	vars[(simulations*num_param) + idx + (8 * num_cells)] = r;
+	vars[(simulations*num_param) + idx + (9 * num_cells)] = s;
+	vars[(simulations*num_param) + idx + (10 * num_cells)] = xs;
+	vars[(simulations*num_param) + idx + (11 * num_cells)] = xr1;
+	vars[(simulations*num_param) + idx + (12 * num_cells)] = xr2;
+	vars[(simulations*num_param) + idx + (13 * num_cells)] = Rbar_ryr;
+	vars[(simulations*num_param) + idx + (14 * num_cells)] = Cai;
+	vars[(simulations*num_param) + idx + (15 * num_cells)] = Cass;
+	vars[(simulations*num_param) + idx + (16 * num_cells)] = CaSR;
+	vars[(simulations*num_param) + idx + (17 * num_cells)] = Nai;
+	vars[(simulations*num_param) + idx + (18 * num_cells)] = Ki;
 
 
 	passed[idxx] = 0;
@@ -442,7 +442,7 @@ __global__ void updateState(float* x, float* x_temp, int num_cells) {
 	int thread_number = threadIdx.y * blockDim.x + threadIdx.x;
 	
 	for (i = 1; i<19; i++) {
-		x[(simulations * 19) + block_number + thread_number + (i*num_cells)] = x_temp[(simulations + block_number) * 19 + thread_number + (i*num_cells)];
+		x[(simulations * 19) + block_number + thread_number + (i*num_cells)] = x_temp[(simulations * 19) + block_number + thread_number + (i*num_cells)];
 	}
 
 }
@@ -747,7 +747,7 @@ int main(int argc, const char* argv[])
 	int num_param = 19;
 
 	// Assume only running 1 simulation initially
-	int simulations = 2;
+	int simulations = 500;
 
 	// Time Step Variables
 	float step = 0.002;
@@ -815,7 +815,6 @@ int main(int argc, const char* argv[])
 	if (num_changing_vars != 0) {
 		printf("Enter a seed factor\n");
 		scanf("%d", &seed_factor);
-		simulations = 500;
 		//cudaMalloc(&rndState, simulations*num_changing_vars * sizeof(curandState));
 		//cudaMalloc(&rndState, simulations*num_changing_vars);
 		cudaMalloc(&dev_randNums, sizeof(float)*simulations*num_changing_vars * num_cells);
@@ -842,18 +841,19 @@ int main(int argc, const char* argv[])
 	V_array = (float*)malloc(sizeof(float)*(total_timepts*num_cells*simulations));
 	t_array = (float*)malloc(sizeof(float)*(total_timepts*simulations));
 
-	fprintf(fV, "V = [ \n");
+	//fprintf(fV, "V = [ \n");
 
+	//Velocity Calculation Stuff
 
-	host_velLocal = (int*)malloc(simulations * (num_cells-1) *sizeof(int));
-	host_passed = (int*)malloc(simulations*num_cells*sizeof(int));
-	cudaMalloc(&dev_velLocal, sizeof(int)* simulations*(num_cells-1));
+	//host_velLocal = (int*)malloc(simulations * (num_cells-1) *sizeof(int));
+	//host_passed = (int*)malloc(simulations*num_cells*sizeof(int));
+	//cudaMalloc(&dev_velLocal, sizeof(int)* simulations*(num_cells-1));
 	cudaMalloc(&dev_passed, sizeof(int)*simulations*num_cells);
 
 	//Set up block and grid dimmensions
 	dim3 dimGrid(simulations,gridDim_y); //Each simulation has 10 blocks
 	dim3 dimBlock(length,blockDim_y); //creates a 10 x 100 block
-	printf("Done initalizing");
+	printf("Done initalizing, Begining simulations\n");
 	// Initialize vars array with initial conditions
 	initialConditions <<<dimGrid,dimBlock>>>(dev_vars, num_param, num_cells, dev_passed);
 
@@ -871,7 +871,7 @@ int main(int argc, const char* argv[])
 	
 			cudaMemcpy(host_Vtemp, dev_Vtemp, num_cells*simulations*sizeof(float), cudaMemcpyDeviceToHost);
 			for (i = 0; i<num_cells*simulations; i++) {
-				V_array[(i*(iterations / skip_timept)) + index] = host_Vtemp[i];
+				V_array[i + (num_cells * index)] = host_Vtemp[i];
 				fprintf(fV, "%f\t ", host_Vtemp[i]);
 			}
 			fprintf(fV, "\n");
@@ -885,7 +885,7 @@ int main(int argc, const char* argv[])
 		time++;
 	}
 	cudaDeviceSynchronize();
-	fprintf(fV, "]; \n");
+	//fprintf(fV, "]; \n");
 
 
 	/*
@@ -909,20 +909,20 @@ int main(int argc, const char* argv[])
 	printf("\n");
 
 	if (num_changing_vars != 0) {
-		vel = (float*)malloc(sizeof(float)*simulations);
-		cudaMalloc(&dev_vel, (sizeof(float)*simulations));
+		// vel = (float*)malloc(sizeof(float)*simulations);
+		// cudaMalloc(&dev_vel, (sizeof(float)*simulations));
 
-		cudaMalloc(&dev_V_array, sizeof(float)*(total_timepts*num_cells*simulations));
-		cudaMemcpy(dev_V_array, V_array, sizeof(float)*(total_timepts*num_cells*simulations), cudaMemcpyHostToDevice);
+		// cudaMalloc(&dev_V_array, sizeof(float)*(total_timepts*num_cells*simulations));
+		// cudaMemcpy(dev_V_array, V_array, sizeof(float)*(total_timepts*num_cells*simulations), cudaMemcpyHostToDevice);
 
-		computeVelocity <<<1, simulations >>>(dev_V_array, total_timepts, num_cells, dev_vel, step*skip_timept, length, width);
-		computeLocal <<<simulations,(num_cells-1)>>>(dev_passed,num_cells,dev_velLocal);
+		// computeVelocity <<<1, simulations >>>(dev_V_array, total_timepts, num_cells, dev_vel, step*skip_timept, length, width);
+		// computeLocal <<<simulations,(num_cells-1)>>>(dev_passed,num_cells,dev_velLocal);
 
 
-		cudaMemcpy(vel, dev_vel, simulations*sizeof(float), cudaMemcpyDeviceToHost);
+		// cudaMemcpy(vel, dev_vel, simulations*sizeof(float), cudaMemcpyDeviceToHost);
 		cudaMemcpy(randNums, dev_randNums, num_changing_vars*simulations*sizeof(float) * num_cells, cudaMemcpyDeviceToHost);
-		cudaMemcpy(host_passed,dev_passed, sizeof(int)*simulations*num_cells, cudaMemcpyDeviceToHost);
-		cudaMemcpy(host_velLocal,dev_velLocal,sizeof(int)* simulations*(num_cells-1), cudaMemcpyDeviceToHost);	
+		// cudaMemcpy(host_passed,dev_passed, sizeof(int)*simulations*num_cells, cudaMemcpyDeviceToHost);
+		// cudaMemcpy(host_velLocal,dev_velLocal,sizeof(int)* simulations*(num_cells-1), cudaMemcpyDeviceToHost);	
 
 		fprintf(params, "A = [ \n");
 		fprintf(allparams, "A = [ \n");
@@ -938,37 +938,37 @@ int main(int argc, const char* argv[])
 				}
 				fprintf(allparams, "\n");
 			}
-			for(ii = 0; ii <  num_cells; ii++)
-			{
-				fprintf(p, "%i\t", host_passed[i * num_cells + ii] );
-			}
-			for(ii = 0; ii < num_cells-1;ii++)
-			{
-				fprintf(v, "%i\t", host_velLocal[i * (num_cells-1) + ii]);
-			}
+			// for(ii = 0; ii <  num_cells; ii++)
+			// {
+			// 	fprintf(p, "%i\t", host_passed[i * num_cells + ii] );
+			// }
+			// for(ii = 0; ii < num_cells-1;ii++)
+			// {
+			// 	fprintf(v, "%i\t", host_velLocal[i * (num_cells-1) + ii]);
+			// }
 			fprintf(p, "\n" );
-			fprintf(v, "\n" );
+			//fprintf(v, "\n" );
 			fprintf(params, "\n");
 
 		}
 		fprintf(params, "]; \n");
 		//fprintf(output, "\n");
-		fprintf(output, "Vel = [ \n");
-		for (i = 0; i<simulations; i++) {
-			fprintf(output, "%f\n", vel[i]);
-		}
-		fprintf(output, "]; \n");
+		// fprintf(output, "Vel = [ \n");
+		// for (i = 0; i<simulations; i++) {
+		// 	fprintf(output, "%f\n", vel[i]);
+		// }
+		// fprintf(output, "]; \n");
 
 		//cudaFree(rndState);
 		cudaFree(dev_randNums);
 		free(randNums);
-		free(vel);
-		cudaFree(dev_vel);
+		//free(vel);
+		//cudaFree(dev_vel);
 
-		cudaFree(dev_velLocal);
-		cudaFree(dev_passed);
-		free(host_velLocal);
-		free(host_passed);
+		//cudaFree(dev_velLocal);
+		//cudaFree(dev_passed);
+		//free(host_velLocal);
+		//free(host_passed);
 
 	}
 
