@@ -756,7 +756,7 @@ int main(int argc, const char* argv[])
 
 	// Time Step Variables
 	float step = 0.002;
-	float tend = 50;
+	float tend = 1000;
 	int iterations = tend / step;
 	float skip_time_value = 0.5; //ms
 	int skip_timept = skip_time_value / step; // skipping time points in voltage array & time array
@@ -766,12 +766,12 @@ int main(int argc, const char* argv[])
 	int length = 100;
 	int width = 100;
 	int num_cells = length*width;
-	int blockDim_y = 1000 / length;
+	int blockDim_y = 100 / length;
 	int gridDim_y = width / blockDim_y;
 
 	//Stimulus Variables
 	float stimDur = 2.0;
-	float stimAmp = -400;
+	float stimAmp = -200;
 	float stimInterval = 1000;
 	int tstim = stimInterval / step;
 
@@ -868,7 +868,6 @@ int main(int argc, const char* argv[])
 	while (time<iterations) {
 
 		computeState <<<dimGrid,dimBlock>>>(dev_vars, dev_ion_currents, num_cells, step, dev_randNums, simulations, dev_x_temp, num_changing_vars);
-		cudaDeviceSynchronize();
 		updateState <<<dimGrid,dimBlock  >>>(dev_vars, dev_x_temp, num_cells);
 
 		compute_voltage <<<dimGrid,dimBlock >>>(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, local, dev_passed, threshold);
