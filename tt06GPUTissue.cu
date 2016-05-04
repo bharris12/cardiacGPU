@@ -552,7 +552,7 @@ __global__ void compute_voltage(float* x, float* V, float* Iion, float step, flo
 	
 	// set which cells will get a stimulus
 	
-	if(blockIdx.y == 0 && threadIdx.x < 5 && threadIdx.y < 5)
+	if(blockIdx.y < 4 && threadIdx.x < 4)
 		stim = Istim1;
 
 	// if (idx == 0 || idx == 1)					{ stim = Istim1; }
@@ -747,16 +747,16 @@ int main(int argc, const char* argv[])
 	int total_s2_times;
 	int s2_loc;
 	int seed_factor;
-
+	cudaError_t err;
 	//Number of Parameters in the Model
 	int num_param = 19;
 
 	// Assume only running 1 simulation initially
-	int simulations = 2;
+	int simulations = 1;
 
 	// Time Step Variables
 	float step = 0.002;
-	float tend = 1000;
+	float tend = 500;
 	int iterations = tend / step;
 	float skip_time_value = 0.5; //ms
 	int skip_timept = skip_time_value / step; // skipping time points in voltage array & time array
@@ -766,12 +766,12 @@ int main(int argc, const char* argv[])
 	int length = 100;
 	int width = 100;
 	int num_cells = length*width;
-	int blockDim_y = 100 / length;
-	int gridDim_y = width / blockDim_y;
+	int blockDim_y = 100 / length; //1
+	int gridDim_y = width / blockDim_y;  //100
 
 	//Stimulus Variables
 	float stimDur = 2.0;
-	float stimAmp = -200;
+	float stimAmp = -60;
 	float stimInterval = 1000;
 	int tstim = stimInterval / step;
 
@@ -857,17 +857,21 @@ int main(int argc, const char* argv[])
 
 	//Set up block and grid dimmensions
 	dim3 dimGrid(simulations,gridDim_y); //Each simulation has 10 blocks
+	 				//(1 (normally gonna be 500),100)
 	dim3 dimBlock(length,blockDim_y); //creates a 10 x 100 block
-	
+					//(100,1)
 	// Initialize vars array with initial conditions
 	initialConditions <<<dimGrid,dimBlock>>>(dev_vars, num_param, num_cells, dev_passed);
-	printf(cudaGetErrorString(cudaGetLastError()));
-	printf("\n");
+
 	printf("Done initalizing, Begining simulations\n");
 	
 	while (time<iterations) {
 
 		computeState <<<dimGrid,dimBlock>>>(dev_vars, dev_ion_currents, num_cells, step, dev_randNums, simulations, dev_x_temp, num_changing_vars);
+		cudaDeviceSynchronize();
+		err  = cudaGetLastError();
+		if (err != cudaSuccess) 
+  			printf("Sync kernel error: %s\n", cudaGetErrorString(err));
 		updateState <<<dimGrid,dimBlock  >>>(dev_vars, dev_x_temp, num_cells);
 
 		compute_voltage <<<dimGrid,dimBlock >>>(dev_vars, dev_Vtemp, dev_ion_currents, step, dev_randNums, simulations, length, width, num_changing_vars, time, stimDur, stimAmp, tstim, local, dev_passed, threshold);
